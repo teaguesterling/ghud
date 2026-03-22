@@ -1,0 +1,102 @@
+import json
+import subprocess
+import pytest
+from ghud.github import (
+    get_username,
+    get_notifications,
+    get_open_prs,
+    get_merged_prs,
+    get_issues_for_repo,
+    get_issues_for_repos_batch,
+)
+
+
+def _mock_run(stdout_data, returncode=0):
+    """Create a mock for subprocess.run that returns given stdout."""
+    def mock(cmd, **kwargs):
+        result = subprocess.CompletedProcess(cmd, returncode)
+        result.stdout = stdout_data if isinstance(stdout_data, str) else json.dumps(stdout_data)
+        result.stderr = ""
+        return result
+    return mock
+
+
+def test_get_username(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _mock_run("testuser\n"))
+    assert get_username() == "testuser"
+
+
+def test_get_notifications(monkeypatch):
+    # Notifications use --jq '.[]' which outputs one JSON object per line
+    obj = {"reason": "review_requested", "subject": {"title": "Fix bug", "type": "PullRequest"},
+           "repository": {"full_name": "org/repo"}}
+    monkeypatch.setattr(subprocess, "run", _mock_run(json.dumps(obj)))
+    result = get_notifications()
+    assert len(result) == 1
+    assert result[0]["reason"] == "review_requested"
+
+
+def test_get_open_prs(monkeypatch):
+    data = [
+        {"title": "My PR", "repository": {"nameWithOwner": "org/repo"},
+         "state": "open", "updatedAt": "2026-03-22T00:00:00Z", "url": "https://..."},
+    ]
+    monkeypatch.setattr(subprocess, "run", _mock_run(data))
+    result = get_open_prs("testuser")
+    assert len(result) == 1
+
+
+def test_get_merged_prs(monkeypatch):
+    data = [
+        {"title": "Merged PR", "repository": {"nameWithOwner": "org/repo"},
+         "closedAt": "2026-03-22T00:00:00Z", "url": "https://..."},
+    ]
+    monkeypatch.setattr(subprocess, "run", _mock_run(data))
+    result = get_merged_prs("testuser", days=7)
+    assert len(result) == 1
+
+
+def test_get_issues_for_repo(monkeypatch):
+    data = [
+        {"number": 1, "title": "Bug", "author": {"login": "other"},
+         "createdAt": "2026-03-20T00:00:00Z", "url": "https://..."},
+        {"number": 2, "title": "My issue", "author": {"login": "me"},
+         "createdAt": "2026-03-21T00:00:00Z", "url": "https://..."},
+    ]
+    monkeypatch.setattr(subprocess, "run", _mock_run(data))
+    result = get_issues_for_repo("org/repo", exclude_author="me")
+    assert len(result) == 1
+    assert result[0]["title"] == "Bug"
+
+
+def test_get_username_returns_empty_on_failure(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    assert get_username() == ""
+
+
+def test_get_issues_for_repos_batch(monkeypatch):
+    graphql_response = {
+        "data": {
+            "r0": {"issues": {"nodes": [
+                {"number": 1, "title": "Bug", "createdAt": "2026-03-20T00:00:00Z",
+                 "url": "https://...", "author": {"login": "other"},
+                 "labels": {"nodes": [{"name": "bug"}]}},
+                {"number": 2, "title": "My issue", "createdAt": "2026-03-21T00:00:00Z",
+                 "url": "https://...", "author": {"login": "me"},
+                 "labels": {"nodes": []}},
+            ]}},
+            "r1": {"issues": {"nodes": [
+                {"number": 5, "title": "Feature req", "createdAt": "2026-03-19T00:00:00Z",
+                 "url": "https://...", "author": {"login": "someone"},
+                 "labels": {"nodes": []}},
+            ]}},
+        }
+    }
+    monkeypatch.setattr(subprocess, "run", _mock_run(graphql_response))
+    result = get_issues_for_repos_batch(["org/repo-a", "org/repo-b"], exclude_author="me")
+    # Should exclude "My issue" (author=me), keep the other 2
+    assert len(result) == 2
+    titles = {r["title"] for r in result}
+    assert "Bug" in titles
+    assert "Feature req" in titles
+    assert result[0]["repo"] in ("org/repo-a", "org/repo-b")
