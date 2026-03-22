@@ -22,6 +22,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     discover_parser = subparsers.add_parser("discover", help="Discover new repos")
     discover_parser.add_argument("--dry-run", action="store_true", help="Show changes without writing")
 
+    subparsers.add_parser("serve", help="Run MCP server (stdio)")
+
     return parser.parse_args(argv)
 
 
@@ -48,5 +50,8 @@ def main(argv: list[str] | None = None) -> None:
     if args.command == "discover":
         from ghud.discover import run_discover
         run_discover(args)
+    elif args.command == "serve":
+        from ghud.mcp import main as mcp_main
+        mcp_main()
     else:
         run_dashboard(args)

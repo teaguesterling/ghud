@@ -27,3 +27,8 @@ def test_discover_dry_run():
     args = parse_args(["discover", "--dry-run"])
     assert args.command == "discover"
     assert args.dry_run is True
+
+
+def test_serve_subcommand():
+    args = parse_args(["serve"])
+    assert args.command == "serve"
