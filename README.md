@@ -16,6 +16,35 @@ ghud gives you a single-command overview of your GitHub activity:
 
 Plus a `discover` command to find repos missing from your portfolio config.
 
+## Example
+
+```
+$ ghud
+╭───────────────────────── New Issues From Others (3) ─────────────────────────╮
+│  plinking_duck       Faster BCF/VCF reader for 'Free'              23d ago  │
+│  duckdb_markdown     Would it be possible to add option to         50d ago  │
+│                      write markdown with frontmatter data?                  │
+│  duckdb_scalarfs     Curious about the extension usage             80d ago  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭───────────────────────────── Your Open PRs (5) ──────────────────────────────╮
+│  community-ext       Update sitting_duck to v1.4.0                      0d  │
+│  fledgling           Extract conversation tools into MCP server    13d  1c  │
+│  fledgling           Fix ReadLines returning empty table           18d  1c  │
+│  community-ext       Update plinking_duck to v0.1.2                    21d  │
+│  duckdb_tarfs        Port to DuckDB v1.4-andium                   40d  3c  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────── Recently Merged (5) ─────────────────────────────╮
+│  sitting_duck        Fix SQL CREATE FUNCTION name extraction        today   │
+│  duckdb_webbed       Add nullstr parameter for NULL values          today   │
+│  community-ext       Update duck_hunt to v1.9.0                     today   │
+│  jetsam              Fix stash_pop failure                          today   │
+│  plinking_duck       Parallelize genotype orient mode             1d ago   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─────────────────────────────── Other Activity ───────────────────────────────╮
+│  duckdb/community-extensions     1 notification (author)                     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
 ## Installation
 
 ```bash
