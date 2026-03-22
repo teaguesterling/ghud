@@ -9,7 +9,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-IMPORTANT_REASONS = {"review_requested", "mention", "assign", "team_mention", "security_alert"}
+from ghud.data import IMPORTANT_REASONS
 
 REASON_COLORS = {
     "review_requested": "bold red",
