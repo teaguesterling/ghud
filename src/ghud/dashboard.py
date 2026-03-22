@@ -213,3 +213,82 @@ def render_dashboard(
 
     if other_panel:
         console.print(other_panel)
+
+
+def render_dashboard_markdown(data: dict, show_all: bool = False) -> str:
+    """Render the dashboard as a markdown string."""
+    sections = []
+
+    # Notifications
+    notifications = data.get("notifications", [])
+    if not show_all:
+        notifications = [n for n in notifications if n.get("reason") in IMPORTANT_REASONS]
+    if notifications:
+        label = "important" if not show_all else ""
+        count_label = f"{len(notifications)} {label}".strip()
+        lines = [f"## Notifications ({count_label})", ""]
+        lines.append("| Reason | Repo | Title |")
+        lines.append("|--------|------|-------|")
+        for n in notifications:
+            reason = n.get("reason", "unknown")
+            repo = _short_repo(n.get("repository", {}).get("full_name", ""))
+            title = n.get("subject", {}).get("title", "")
+            lines.append(f"| {reason} | {repo} | {title} |")
+        sections.append("\n".join(lines))
+
+    # Issues from others
+    issues = data.get("other_issues", [])
+    if issues:
+        lines = [f"## New Issues From Others ({len(issues)})", ""]
+        lines.append("| Repo | Title | Age |")
+        lines.append("|------|-------|-----|")
+        for issue in issues:
+            repo = _short_repo(issue.get("repo", ""))
+            title = issue.get("title", "")
+            days = _days_ago(issue.get("createdAt", ""))
+            lines.append(f"| {repo} | {title} | {days}d ago |")
+        sections.append("\n".join(lines))
+
+    # Open PRs
+    prs = data.get("open_prs", [])
+    if prs:
+        lines = [f"## Your Open PRs ({len(prs)})", ""]
+        lines.append("| Repo | Title | Age | Comments |")
+        lines.append("|------|-------|-----|----------|")
+        for pr in prs:
+            repo = _short_repo(pr.get("repository", {}).get("nameWithOwner", ""))
+            title = pr.get("title", "")
+            days = _days_ago(pr.get("createdAt", ""))
+            comments = pr.get("commentsCount", 0)
+            lines.append(f"| {repo} | {title} | {days}d | {comments} |")
+        sections.append("\n".join(lines))
+
+    # Merged PRs
+    merged = data.get("merged_prs", [])
+    if merged:
+        lines = [f"## Recently Merged ({len(merged)})", ""]
+        lines.append("| Repo | Title | When |")
+        lines.append("|------|-------|------|")
+        for pr in merged:
+            repo = _short_repo(pr.get("repository", {}).get("nameWithOwner", ""))
+            title = pr.get("title", "")
+            days = _days_ago(pr.get("closedAt", ""))
+            when = "today" if days == 0 else f"{days}d ago"
+            lines.append(f"| {repo} | {title} | {when} |")
+        sections.append("\n".join(lines))
+
+    # Other activity
+    other = data.get("other_activity", [])
+    if other:
+        lines = ["## Other Activity", ""]
+        for item in other:
+            repo = item.get("repo", "")
+            count = item.get("count", 0)
+            reasons = item.get("reasons", "")
+            lines.append(f"- **{repo}**: {count} notification{'s' if count != 1 else ''} ({reasons})")
+        sections.append("\n".join(lines))
+
+    if not sections:
+        return "No activity to show."
+
+    return "\n\n".join(sections) + "\n"
