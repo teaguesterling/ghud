@@ -5,16 +5,23 @@ from typing import Optional
 
 from ruamel.yaml import YAML
 
-# Default candidate paths for projects.yaml
-DEFAULT_YAML_CANDIDATES = [
+# Legacy candidate paths for projects.yaml
+_LEGACY_YAML_CANDIDATES = [
     os.path.expanduser("~/Projects/pages/src/_data/projects.yaml"),
     "/mnt/aux-data/teague/Projects/pages/src/_data/projects.yaml",
 ]
 
 
+def _build_yaml_candidates() -> list[str]:
+    """Build ordered list of candidate paths, XDG first."""
+    xdg_config = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+    xdg_path = os.path.join(xdg_config, "ghud", "projects.yaml")
+    return [xdg_path] + _LEGACY_YAML_CANDIDATES
+
+
 def find_yaml_path(candidates: Optional[list[str]] = None) -> Optional[str]:
     """Return the first existing candidate path, or None."""
-    for path in (candidates or DEFAULT_YAML_CANDIDATES):
+    for path in (candidates or _build_yaml_candidates()):
         if os.path.isfile(path):
             return path
     return None

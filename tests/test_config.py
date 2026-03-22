@@ -78,3 +78,33 @@ def test_find_yaml_path_returns_first_existing(tmp_path):
 def test_find_yaml_path_returns_none_if_missing():
     path = find_yaml_path(candidates=["/nonexistent/a", "/nonexistent/b"])
     assert path is None
+
+
+def test_find_yaml_path_checks_xdg_first(tmp_path, monkeypatch):
+    xdg_dir = tmp_path / "xdg" / "ghud"
+    xdg_dir.mkdir(parents=True)
+    xdg_file = xdg_dir / "projects.yaml"
+    xdg_file.write_text("site: {}")
+
+    legacy_dir = tmp_path / "legacy"
+    legacy_dir.mkdir()
+    legacy_file = legacy_dir / "projects.yaml"
+    legacy_file.write_text("site: {}")
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    from ghud.config import _build_yaml_candidates
+    candidates = _build_yaml_candidates()
+    assert candidates[0] == str(xdg_file)
+
+
+def test_find_yaml_path_xdg_default_when_unset(tmp_path, monkeypatch):
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    fake_home = str(tmp_path)
+    monkeypatch.setattr(
+        "os.path.expanduser",
+        lambda p: p.replace("~", fake_home),
+    )
+    from ghud.config import _build_yaml_candidates
+    candidates = _build_yaml_candidates()
+    assert candidates[0].startswith(fake_home)
+    assert "ghud" in candidates[0]
