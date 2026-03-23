@@ -32,7 +32,6 @@ dependencies = [
 
 [project.scripts]
 ghud = "ghud.cli:main"
-ghud-mcp = "ghud.mcp:main"
 
 [project.urls]
 Homepage = "https://github.com/teaguesterling/ghud"
