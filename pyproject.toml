@@ -28,6 +28,7 @@ dependencies = [
     "rich>=13.0",
     "ruamel.yaml>=0.18",
     "fastmcp>=2.0",
+    "typer>=0.9",
 ]
 
 [project.scripts]
