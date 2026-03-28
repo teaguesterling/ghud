@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+
+- Pager no longer triggers for short output that fits on screen
+- Fixed ANSI escape codes rendering as raw text in pager (`LESS=-R`)
+
 ## 0.2.0
 
 ### Added
