@@ -9,6 +9,8 @@ from ghud.github import (
     get_issues_for_repo,
     get_issues_for_repos_batch,
     get_issue_detail,
+    get_pr_detail,
+    get_prs_for_repo,
 )
 
 
@@ -135,3 +137,57 @@ def test_get_issue_detail_not_found(monkeypatch):
     monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
     result = get_issue_detail("org/repo", 999)
     assert result == {}
+
+
+def test_get_pr_detail(monkeypatch):
+    data = {
+        "number": 15,
+        "title": "Add feature X",
+        "state": "OPEN",
+        "body": "This PR adds feature X.",
+        "author": {"login": "alice"},
+        "createdAt": "2026-03-20T00:00:00Z",
+        "url": "https://github.com/org/repo/pull/15",
+        "labels": [{"name": "enhancement"}],
+        "assignees": [{"login": "bob"}],
+        "reviewDecision": "APPROVED",
+        "statusCheckRollup": [
+            {"name": "ci/build", "status": "COMPLETED", "conclusion": "SUCCESS"},
+            {"name": "ci/lint", "status": "COMPLETED", "conclusion": "SUCCESS"},
+        ],
+        "mergeable": "MERGEABLE",
+        "comments": [
+            {"author": {"login": "carol"}, "body": "LGTM!",
+             "createdAt": "2026-03-21T00:00:00Z"},
+        ],
+        "reviews": [
+            {"author": {"login": "carol"}, "state": "APPROVED",
+             "body": "", "submittedAt": "2026-03-21T00:00:00Z"},
+        ],
+    }
+    monkeypatch.setattr(subprocess, "run", _mock_run(data))
+    result = get_pr_detail("org/repo", 15)
+    assert result["number"] == 15
+    assert result["reviewDecision"] == "APPROVED"
+    assert len(result["statusCheckRollup"]) == 2
+
+
+def test_get_pr_detail_not_found(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    result = get_pr_detail("org/repo", 999)
+    assert result == {}
+
+
+def test_get_prs_for_repo(monkeypatch):
+    data = [
+        {"number": 10, "title": "PR A", "author": {"login": "alice"},
+         "createdAt": "2026-03-20T00:00:00Z", "url": "https://...",
+         "state": "OPEN", "statusCheckRollup": [], "reviewDecision": ""},
+        {"number": 11, "title": "PR B", "author": {"login": "bob"},
+         "createdAt": "2026-03-21T00:00:00Z", "url": "https://...",
+         "state": "OPEN", "statusCheckRollup": [], "reviewDecision": "APPROVED"},
+    ]
+    monkeypatch.setattr(subprocess, "run", _mock_run(data))
+    result = get_prs_for_repo("org/repo", state="open", limit=30)
+    assert len(result) == 2
+    assert result[0]["number"] == 10

@@ -182,3 +182,27 @@ def get_issue_detail(repo: str, number: int) -> dict:
     if isinstance(result, list):
         return {}
     return result
+
+
+def get_pr_detail(repo: str, number: int) -> dict:
+    """Get detailed information for a single PR including comments, reviews, and checks."""
+    result = _run_gh_json([
+        "pr", "view", str(number),
+        "--repo", repo,
+        "--json", "number,title,state,body,author,createdAt,url,labels,assignees,"
+                  "reviewDecision,statusCheckRollup,mergeable,comments,reviews",
+    ])
+    if isinstance(result, list):
+        return {}
+    return result
+
+
+def get_prs_for_repo(repo: str, state: str = "open", limit: int = 30) -> list[dict]:
+    """Get PRs for a repo with state filter."""
+    return _run_gh_json([
+        "pr", "list",
+        "--repo", repo,
+        "--state", state,
+        "--limit", str(limit),
+        "--json", "number,title,author,createdAt,url,state,statusCheckRollup,reviewDecision",
+    ])
