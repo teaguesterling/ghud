@@ -140,8 +140,26 @@ def run_pr_list(
     limit: int = 30,
     no_pager: bool = False,
 ) -> None:
-    """Placeholder for PR list — implemented in Task 9."""
-    typer.echo("PR list: not implemented yet")
+    """Fetch and render the PR list."""
+    from ghud.render_pr import render_pr_list
+    from ghud.pager import render_with_pager
+
+    if repo is not None:
+        from ghud.github import get_prs_for_repo
+        prs = get_prs_for_repo(repo, state=state, limit=limit)
+    else:
+        from ghud.github import get_open_prs, get_username
+        username = get_username()
+        if not username:
+            typer.echo("Error: Could not determine GitHub username.", err=True)
+            raise typer.Exit(1)
+        prs = get_open_prs(username)
+        prs = prs[:limit]
+
+    def _render(console):
+        render_pr_list(prs, repo=repo, console=console)
+
+    render_with_pager(_render, no_pager=no_pager)
 
 
 def run_pr_detail(
