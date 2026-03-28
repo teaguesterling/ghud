@@ -3,7 +3,7 @@
 project = "ghud"
 copyright = "2026, Teague Sterling"
 author = "Teague Sterling"
-release = "0.1.0"
+release = "0.2.0"
 
 extensions = [
     "myst_parser",
@@ -12,7 +12,7 @@ extensions = [
 ]
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build"]
+exclude_patterns = ["_build", "plans", "specs"]
 
 html_theme = "sphinx_rtd_theme"
 
