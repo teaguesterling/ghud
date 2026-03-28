@@ -8,6 +8,7 @@ from ghud.github import (
     get_merged_prs,
     get_issues_for_repo,
     get_issues_for_repos_batch,
+    get_issue_detail,
 )
 
 
@@ -100,3 +101,37 @@ def test_get_issues_for_repos_batch(monkeypatch):
     assert "Bug" in titles
     assert "Feature req" in titles
     assert result[0]["repo"] in ("org/repo-a", "org/repo-b")
+
+
+def test_get_issue_detail(monkeypatch):
+    data = {
+        "number": 42,
+        "title": "Fix the thing",
+        "state": "open",
+        "body": "## Description\nThis needs fixing.",
+        "author": {"login": "alice"},
+        "createdAt": "2026-03-20T00:00:00Z",
+        "url": "https://github.com/org/repo/issues/42",
+        "labels": [{"name": "bug"}],
+        "assignees": [{"login": "bob"}],
+        "milestone": {"title": "v2.0"},
+        "comments": [
+            {"author": {"login": "carol"}, "body": "I can reproduce.",
+             "createdAt": "2026-03-21T00:00:00Z"},
+            {"author": {"login": "dave"}, "body": "Working on a fix.",
+             "createdAt": "2026-03-22T00:00:00Z"},
+        ],
+    }
+    monkeypatch.setattr(subprocess, "run", _mock_run(data))
+    result = get_issue_detail("org/repo", 42)
+    assert result["number"] == 42
+    assert result["title"] == "Fix the thing"
+    assert result["body"] == "## Description\nThis needs fixing."
+    assert len(result["comments"]) == 2
+    assert result["labels"][0]["name"] == "bug"
+
+
+def test_get_issue_detail_not_found(monkeypatch):
+    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    result = get_issue_detail("org/repo", 999)
+    assert result == {}

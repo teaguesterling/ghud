@@ -170,3 +170,15 @@ def _graphql_issues_batch(
             })
 
     return issues
+
+
+def get_issue_detail(repo: str, number: int) -> dict:
+    """Get detailed information for a single issue including comments."""
+    result = _run_gh_json([
+        "issue", "view", str(number),
+        "--repo", repo,
+        "--json", "number,title,state,body,author,createdAt,url,labels,assignees,milestone,comments",
+    ])
+    if isinstance(result, list):
+        return {}
+    return result
