@@ -1,6 +1,10 @@
 """Pager utility for Rich console output."""
 
+import os
+import shutil
+from io import StringIO
 from typing import Callable, Optional
+
 from rich.console import Console
 
 
@@ -10,6 +14,9 @@ def render_with_pager(
     no_pager: bool = False,
 ) -> None:
     """Render content, optionally wrapping in a pager.
+
+    Only pages if output exceeds the terminal height. Uses LESS=-R
+    to ensure ANSI color codes are interpreted correctly.
 
     Args:
         render_fn: Function that takes a Console and prints to it.
@@ -21,6 +28,22 @@ def render_with_pager(
 
     if no_pager:
         render_fn(console)
+        return
+
+    # Render to a buffer first to check if paging is needed
+    buf = StringIO()
+    buf_console = Console(file=buf, width=console.size.width, force_terminal=True)
+    render_fn(buf_console)
+    rendered = buf.getvalue()
+
+    line_count = rendered.count("\n")
+    term_height = shutil.get_terminal_size().lines
+
+    if line_count <= term_height - 2:
+        # Fits on screen — print directly
+        console.print(rendered, highlight=False, end="")
     else:
+        # Ensure less interprets ANSI escape codes
+        os.environ.setdefault("LESS", "-R")
         with console.pager(styles=True):
-            render_fn(console)
+            console.print(rendered, highlight=False, end="")
