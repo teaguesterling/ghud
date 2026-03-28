@@ -84,3 +84,31 @@ def test_repo_stub():
     with patch("ghud.cli.run_repo_dashboard") as mock_repo:
         result = runner.invoke(app, ["repo"])
         assert result.exit_code == 0
+
+
+def test_issue_alias_i():
+    """ghud i should work like ghud issue."""
+    with patch("ghud.cli.run_issue_list") as mock_list:
+        result = runner.invoke(app, ["i"])
+        assert result.exit_code == 0
+
+
+def test_pr_alias():
+    """ghud pr should work."""
+    with patch("ghud.cli.run_pr_list") as mock_list:
+        result = runner.invoke(app, ["pr"])
+        assert result.exit_code == 0
+
+
+def test_repo_alias_r():
+    """ghud r should work like ghud repo."""
+    with patch("ghud.cli.run_repo_dashboard") as mock_repo:
+        result = runner.invoke(app, ["r"])
+        assert result.exit_code == 0
+
+
+def test_overview_alias_o():
+    """ghud o should work like ghud overview."""
+    with patch("ghud.cli.run_dashboard") as mock_dash:
+        result = runner.invoke(app, ["o"])
+        assert result.exit_code == 0

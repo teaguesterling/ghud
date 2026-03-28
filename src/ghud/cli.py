@@ -4,14 +4,37 @@ import sys
 from enum import Enum
 from typing import Optional
 
+import click
 import typer
+from typer.core import TyperGroup
 
 from ghud.repo_context import resolve_repo
+
+
+class AliasGroup(TyperGroup):
+    """Typer group that supports command aliases."""
+
+    _aliases = {
+        "i": "issue",
+        "o": "overview",
+        "r": "repo",
+    }
+
+    def get_command(self, ctx, cmd_name):
+        cmd_name = self._aliases.get(cmd_name, cmd_name)
+        return super().get_command(ctx, cmd_name)
+
+    def resolve_command(self, ctx, args):
+        if args:
+            args[0] = self._aliases.get(args[0], args[0])
+        return super().resolve_command(ctx, args)
+
 
 app = typer.Typer(
     name="ghud",
     help="GitHub Heads-Up Display — terminal dashboard for your portfolio repos",
     invoke_without_command=True,
+    cls=AliasGroup,
 )
 
 
