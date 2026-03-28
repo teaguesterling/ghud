@@ -102,13 +102,7 @@ def run_issue_list(
     if repo is not None:
         from ghud.github import get_issues_for_repo
         issues = get_issues_for_repo(repo)
-        if state != "open":
-            from ghud.github import _run_gh_json
-            issues = _run_gh_json([
-                "issue", "list", "--repo", repo,
-                "--state", state, "--limit", str(limit),
-                "--json", "number,title,author,createdAt,url,labels",
-            ])
+        # TODO: support --state closed|all by adding state param to get_issues_for_repo
     else:
         from ghud.config import find_yaml_path, load_repos_from_yaml
         from ghud.github import get_issues_for_repos_batch, get_username

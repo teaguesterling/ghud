@@ -145,7 +145,7 @@ def render_issue_detail(
         # Brief: just the count, already in header
         return
 
-    if detail == "full":
+    if detail in ("full", "summary"):
         display_comments = comments
     else:
         display_comments = comments[-max_comments:] if max_comments else comments

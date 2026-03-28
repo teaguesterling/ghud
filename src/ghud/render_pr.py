@@ -207,7 +207,7 @@ def render_pr_detail(
     if detail == "brief":
         return
 
-    if detail == "full":
+    if detail in ("full", "summary"):
         display_comments = comments
     else:
         display_comments = comments[-max_comments:] if max_comments else comments
