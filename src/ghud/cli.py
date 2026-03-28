@@ -72,8 +72,38 @@ def run_issue_list(
     limit: int = 30,
     no_pager: bool = False,
 ) -> None:
-    """Placeholder for issue list — implemented in Task 7."""
-    typer.echo("Issue list: not implemented yet")
+    """Fetch and render the issue list."""
+    from ghud.render_issue import render_issue_list
+    from ghud.pager import render_with_pager
+
+    if repo is not None:
+        from ghud.github import get_issues_for_repo
+        issues = get_issues_for_repo(repo)
+        if state != "open":
+            from ghud.github import _run_gh_json
+            issues = _run_gh_json([
+                "issue", "list", "--repo", repo,
+                "--state", state, "--limit", str(limit),
+                "--json", "number,title,author,createdAt,url,labels",
+            ])
+    else:
+        from ghud.config import find_yaml_path, load_repos_from_yaml
+        from ghud.github import get_issues_for_repos_batch, get_username
+        yaml_path = find_yaml_path()
+        if not yaml_path:
+            typer.echo("Error: Could not find projects.yaml", err=True)
+            raise typer.Exit(1)
+        repos = load_repos_from_yaml(yaml_path)
+        username = get_username()
+        issues = get_issues_for_repos_batch(repos, exclude_author=username)
+        issues.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
+
+    issues = issues[:limit]
+
+    def _render(console):
+        render_issue_list(issues, repo=repo, console=console)
+
+    render_with_pager(_render, no_pager=no_pager)
 
 
 def run_issue_detail(
