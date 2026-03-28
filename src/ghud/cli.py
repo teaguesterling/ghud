@@ -113,8 +113,25 @@ def run_issue_detail(
     comments: str = "3",
     no_pager: bool = False,
 ) -> None:
-    """Placeholder for issue detail — implemented in Task 8."""
-    typer.echo(f"Issue detail #{number}: not implemented yet")
+    """Fetch and render issue detail."""
+    from ghud.github import get_issue_detail
+    from ghud.render_issue import render_issue_detail
+    from ghud.pager import render_with_pager
+
+    issue = get_issue_detail(repo, number)
+    if not issue:
+        typer.echo(f"Error: Could not find issue #{number} in {repo}", err=True)
+        raise typer.Exit(1)
+
+    max_comments = None if comments == "all" else int(comments)
+
+    def _render(console):
+        render_issue_detail(
+            issue, repo=repo, detail=detail,
+            max_comments=max_comments, console=console,
+        )
+
+    render_with_pager(_render, no_pager=no_pager)
 
 
 def run_pr_list(
