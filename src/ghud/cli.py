@@ -194,8 +194,24 @@ def run_repo_dashboard(
     repo: str | None = None,
     no_pager: bool = False,
 ) -> None:
-    """Placeholder for repo dashboard — implemented in Task 11."""
-    typer.echo("Repo dashboard: not implemented yet")
+    """Fetch and render the repo dashboard."""
+    from ghud.github import get_issues_for_repo, get_prs_for_repo
+    from ghud.render_repo import render_repo_dashboard
+    from ghud.pager import render_with_pager
+
+    if repo is None:
+        typer.echo("Error: Cannot show repo dashboard without a repo. Use --repo or run from a git directory.", err=True)
+        raise typer.Exit(1)
+
+    issues = get_issues_for_repo(repo)
+    prs = get_prs_for_repo(repo, state="open", limit=30)
+
+    data = {"issues": issues, "prs": prs}
+
+    def _render(console):
+        render_repo_dashboard(data, repo=repo, console=console)
+
+    render_with_pager(_render, no_pager=no_pager)
 
 
 @app.callback(invoke_without_command=True)
