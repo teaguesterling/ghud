@@ -169,8 +169,25 @@ def run_pr_detail(
     comments: str = "3",
     no_pager: bool = False,
 ) -> None:
-    """Placeholder for PR detail — implemented in Task 10."""
-    typer.echo(f"PR detail #{number}: not implemented yet")
+    """Fetch and render PR detail."""
+    from ghud.github import get_pr_detail
+    from ghud.render_pr import render_pr_detail
+    from ghud.pager import render_with_pager
+
+    pr = get_pr_detail(repo, number)
+    if not pr:
+        typer.echo(f"Error: Could not find PR #{number} in {repo}", err=True)
+        raise typer.Exit(1)
+
+    max_comments = None if comments == "all" else int(comments)
+
+    def _render(console):
+        render_pr_detail(
+            pr, repo=repo, detail=detail,
+            max_comments=max_comments, console=console,
+        )
+
+    render_with_pager(_render, no_pager=no_pager)
 
 
 def run_repo_dashboard(

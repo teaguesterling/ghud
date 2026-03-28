@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
@@ -105,3 +106,136 @@ def render_pr_list(
     title_text = f"Pull Requests — {repo}" if repo else "Pull Requests (all repos)"
     panel = Panel(table, title=f"[bold]{title_text}[/bold]", border_style="yellow")
     console.print(panel)
+
+
+def render_pr_detail(
+    pr: dict,
+    repo: str,
+    detail: str = "standard",
+    max_comments: int = 3,
+    console: Optional[Console] = None,
+) -> None:
+    """Render a detailed PR view."""
+    if console is None:
+        console = Console()
+
+    number = pr.get("number", "")
+    title = pr.get("title", "")
+    state = pr.get("state", "OPEN")
+    author = pr.get("author", {}).get("login", "unknown")
+    created = pr.get("createdAt", "")
+    days = _days_ago(created)
+    labels = pr.get("labels", [])
+    assignees = pr.get("assignees", [])
+    body = pr.get("body", "")
+    comments = pr.get("comments", [])
+    reviews = pr.get("reviews", [])
+    checks = pr.get("statusCheckRollup", []) or []
+    review_decision = pr.get("reviewDecision", "") or ""
+    mergeable = pr.get("mergeable", "")
+
+    # State styling
+    state_lower = state.lower()
+    if state_lower == "merged":
+        state_style = "magenta"
+    elif state_lower == "closed":
+        state_style = "red"
+    else:
+        state_style = "green"
+
+    # Header
+    header_lines = []
+    header_lines.append(f"[bold]{title}[/bold]")
+
+    check_ind = _check_status_indicator(checks)
+    meta_parts = [
+        f"[{state_style}]{state}[/{state_style}]",
+        f"@{author}",
+        f"{days}d ago",
+        f"{len(comments)} comment{'s' if len(comments) != 1 else ''}",
+    ]
+    header_lines.append(" · ".join(meta_parts))
+
+    # Review + check status line
+    status_parts = []
+    status_parts.append(f"Checks: {check_ind.plain}")
+    if review_decision:
+        status_parts.append(f"Review: {review_decision}")
+    if mergeable:
+        status_parts.append(f"Mergeable: {mergeable}")
+    header_lines.append("  ".join(status_parts))
+
+    if labels:
+        header_lines.append(f"Labels: {', '.join(l['name'] for l in labels)}")
+    if assignees:
+        assignee_str = ", ".join(f"@{a['login']}" for a in assignees)
+        header_lines.append(f"Assignees: {assignee_str}")
+
+    console.print(Panel(
+        "\n".join(header_lines),
+        title=f"[bold]PR #{number} · {repo}[/bold]",
+        border_style="yellow",
+    ))
+
+    # Expanded checks (full only)
+    if detail == "full" and checks:
+        check_lines = []
+        for c in checks:
+            name = c.get("name", "unknown")
+            conclusion = c.get("conclusion", c.get("status", "unknown"))
+            if conclusion == "SUCCESS":
+                check_lines.append(f"  [green]✓[/green] {name}")
+            elif conclusion in ("FAILURE", "CANCELLED", "TIMED_OUT"):
+                check_lines.append(f"  [red]✗[/red] {name}")
+            else:
+                check_lines.append(f"  [yellow]●[/yellow] {name}")
+        console.print(Panel(
+            "\n".join(check_lines),
+            title="[bold]Checks[/bold]",
+            border_style="dim",
+        ))
+
+    # Body (standard and full only)
+    if detail in ("standard", "full") and body:
+        console.print(Panel(
+            Markdown(body),
+            title="[bold]Description[/bold]",
+            border_style="dim",
+        ))
+
+    # Comments
+    if detail == "brief":
+        return
+
+    if detail == "full":
+        display_comments = comments
+    else:
+        display_comments = comments[-max_comments:] if max_comments else comments
+
+    if not comments:
+        return
+
+    total = len(comments)
+    showing = len(display_comments)
+    if showing < total:
+        comment_title = f"Comments (showing {showing} of {total})"
+    else:
+        comment_title = f"Comments ({total})"
+
+    comment_parts = []
+    for c in display_comments:
+        c_author = c.get("author", {}).get("login", "unknown")
+        c_date = c.get("createdAt", "")
+        c_days = _days_ago(c_date)
+        c_body = c.get("body", "")
+
+        if detail == "summary":
+            comment_parts.append(f"[bold]@{c_author}[/bold] · {c_days}d ago")
+        else:
+            comment_parts.append(f"[bold]@{c_author}[/bold] · {c_days}d ago\n{c_body}")
+
+    console.print(Panel(
+        "\n\n".join(comment_parts),
+        title=f"[bold]{comment_title}[/bold]",
+        border_style="dim",
+    ))
