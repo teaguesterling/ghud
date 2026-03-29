@@ -85,8 +85,22 @@ def test_panel_borders_preserved_with_wide_content():
 
     output.seek(0)
     rendered = output.read()
-    for i, line in enumerate(rendered.split("\n")):
-        plain = Text.from_ansi(line)
-        assert plain.cell_len <= 80, (
-            f"Line {i} exceeds terminal width ({plain.cell_len} > 80): {plain.plain!r}"
-        )
+    lines = rendered.split("\n")
+
+    # The buffer console renders the panel as ~10 lines. Without soft_wrap,
+    # console.print() re-wraps the ANSI text into ~22 lines, breaking panel
+    # borders. Verify the output wasn't inflated by re-wrapping.
+    assert len(lines) <= 15, (
+        f"Output has {len(lines)} lines — likely re-wrapped "
+        f"(expected ~10 for a small panel)"
+    )
+
+    # Verify panel top and bottom borders survived intact on single lines
+    border_lines = [
+        l for l in lines
+        if "╭" in Text.from_ansi(l).plain or "╰" in Text.from_ansi(l).plain
+    ]
+    assert len(border_lines) == 2, (
+        f"Expected 2 border lines (╭ and ╰), got {len(border_lines)} — "
+        f"borders were likely split across lines by re-wrapping"
+    )
