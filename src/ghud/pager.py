@@ -40,10 +40,12 @@ def render_with_pager(
     term_height = shutil.get_terminal_size().lines
 
     if line_count <= term_height - 2:
-        # Fits on screen — print directly
-        console.print(rendered, highlight=False, end="")
+        # Fits on screen — print directly.
+        # soft_wrap prevents re-wrapping pre-rendered ANSI text which would
+        # break panel borders and table layouts.
+        console.print(rendered, highlight=False, soft_wrap=True, end="")
     else:
         # Ensure less interprets ANSI escape codes
         os.environ.setdefault("LESS", "-R")
         with console.pager(styles=True):
-            console.print(rendered, highlight=False, end="")
+            console.print(rendered, highlight=False, soft_wrap=True, end="")

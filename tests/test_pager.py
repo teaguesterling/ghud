@@ -58,3 +58,49 @@ def test_render_long_output_uses_pager():
     with patch("ghud.pager.shutil.get_terminal_size", return_value=os.terminal_size((80, 10))):
         render_with_pager(render_fn, console=console, no_pager=False)
     assert pager_used
+
+
+def test_panel_borders_preserved_with_wide_content():
+    """Pre-rendered panels with wide content should not be re-wrapped."""
+    from rich.panel import Panel
+    from rich.markdown import Markdown
+    from rich.text import Text
+
+    body = (
+        "text\n\n```\n"
+        "┌──────────────────┬───────────────────┬─────────┬────────────┐\n"
+        "│     file_path    │     file_ext      │  kind   │ size_bytes │\n"
+        "└──────────────────┴───────────────────┴─────────┴────────────┘\n"
+        "```\n"
+    )
+
+    output = StringIO()
+    console = Console(file=output, force_terminal=True, width=80)
+
+    def render_fn(c: Console):
+        c.print(Panel(Markdown(body), title="Description", border_style="dim"))
+
+    with patch("ghud.pager.shutil.get_terminal_size", return_value=os.terminal_size((80, 50))):
+        render_with_pager(render_fn, console=console, no_pager=False)
+
+    output.seek(0)
+    rendered = output.read()
+    lines = rendered.split("\n")
+
+    # The buffer console renders the panel as ~10 lines. Without soft_wrap,
+    # console.print() re-wraps the ANSI text into ~22 lines, breaking panel
+    # borders. Verify the output wasn't inflated by re-wrapping.
+    assert len(lines) <= 15, (
+        f"Output has {len(lines)} lines — likely re-wrapped "
+        f"(expected ~10 for a small panel)"
+    )
+
+    # Verify panel top and bottom borders survived intact on single lines
+    border_lines = [
+        l for l in lines
+        if "╭" in Text.from_ansi(l).plain or "╰" in Text.from_ansi(l).plain
+    ]
+    assert len(border_lines) == 2, (
+        f"Expected 2 border lines (╭ and ╰), got {len(border_lines)} — "
+        f"borders were likely split across lines by re-wrapping"
+    )
