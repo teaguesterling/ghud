@@ -58,3 +58,35 @@ def test_render_long_output_uses_pager():
     with patch("ghud.pager.shutil.get_terminal_size", return_value=os.terminal_size((80, 10))):
         render_with_pager(render_fn, console=console, no_pager=False)
     assert pager_used
+
+
+def test_panel_borders_preserved_with_wide_content():
+    """Pre-rendered panels with wide content should not be re-wrapped."""
+    from rich.panel import Panel
+    from rich.markdown import Markdown
+    from rich.text import Text
+
+    body = (
+        "text\n\n```\n"
+        "┌──────────────────┬───────────────────┬─────────┬────────────┐\n"
+        "│     file_path    │     file_ext      │  kind   │ size_bytes │\n"
+        "└──────────────────┴───────────────────┴─────────┴────────────┘\n"
+        "```\n"
+    )
+
+    output = StringIO()
+    console = Console(file=output, force_terminal=True, width=80)
+
+    def render_fn(c: Console):
+        c.print(Panel(Markdown(body), title="Description", border_style="dim"))
+
+    with patch("ghud.pager.shutil.get_terminal_size", return_value=os.terminal_size((80, 50))):
+        render_with_pager(render_fn, console=console, no_pager=False)
+
+    output.seek(0)
+    rendered = output.read()
+    for i, line in enumerate(rendered.split("\n")):
+        plain = Text.from_ansi(line)
+        assert plain.cell_len <= 80, (
+            f"Line {i} exceeds terminal width ({plain.cell_len} > 80): {plain.plain!r}"
+        )
