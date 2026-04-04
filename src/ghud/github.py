@@ -55,7 +55,7 @@ def get_open_prs(username: str) -> list[dict]:
         f"--author={username}",
         "--state=open",
         "--limit", "100",
-        "--json", "title,repository,state,updatedAt,url,commentsCount,createdAt",
+        "--json", "number,title,repository,state,updatedAt,url,commentsCount,createdAt",
     ])
 
 
