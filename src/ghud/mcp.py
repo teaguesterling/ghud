@@ -3,7 +3,7 @@
 
 from fastmcp import FastMCP
 
-from ghud.config import find_yaml_path, load_repos_from_yaml
+from ghud.config import resolve_portfolio
 from ghud.github import (
     get_username,
     get_notifications,
@@ -28,8 +28,7 @@ def _get_state() -> dict:
     """Resolve config and username once, cache for subsequent calls."""
     global _state
     if _state is None:
-        yaml_path = find_yaml_path()
-        repos = load_repos_from_yaml(yaml_path) if yaml_path else []
+        repos, _source = resolve_portfolio()
         username = get_username()
         _state = {"repos": repos, "username": username}
     return _state

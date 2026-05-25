@@ -5,8 +5,9 @@ import json
 import subprocess
 import sys
 
-from ghud.config import find_yaml_path, load_repos_from_yaml
+from ghud.config import resolve_portfolio
 from ghud.github import get_username
+from ghud.mrconfig import find_mrconfig
 
 
 def fetch_all_user_repos(username: str) -> list[dict]:
@@ -47,10 +48,13 @@ def format_new_project(repo: dict) -> dict:
 
 def run_discover(args: argparse.Namespace) -> None:
     """Run the discover command."""
-    yaml_path = find_yaml_path()
-    if not yaml_path:
-        print("Error: Could not find projects.yaml", file=sys.stderr)
+    known_repos, source = resolve_portfolio()
+    if not source:
+        print("Error: no portfolio found (~/.mrconfig or projects.yaml)", file=sys.stderr)
         sys.exit(1)
+
+    # resolve_portfolio prefers .mrconfig, so if one exists it's the source.
+    is_mrconfig = find_mrconfig() is not None
 
     username = get_username()
     if not username:
@@ -59,14 +63,13 @@ def run_discover(args: argparse.Namespace) -> None:
 
     print(f"Fetching repos for {username}...")
     github_repos = fetch_all_user_repos(username)
-    known_repos = load_repos_from_yaml(yaml_path)
     new_repos = find_new_repos(github_repos, known_repos)
 
     if not new_repos:
-        print("All repos are already tracked in projects.yaml.")
+        print(f"All repos are already tracked in {source}.")
         return
 
-    print(f"\nFound {len(new_repos)} new repo(s) not in projects.yaml:\n")
+    print(f"\nFound {len(new_repos)} new repo(s) not in {source}:\n")
     for repo in sorted(new_repos, key=lambda r: r["nameWithOwner"]):
         desc = repo.get("description") or "(no description)"
         fork_label = " [fork]" if repo.get("fork") else ""
@@ -77,6 +80,18 @@ def run_discover(args: argparse.Namespace) -> None:
     if args.dry_run:
         print("(dry run — no changes written)")
         return
+
+    # The manifest is an .mrconfig — ghud can't write that meaningfully (mr owns
+    # it). Print how to register them and stop.
+    if is_mrconfig:
+        print("Your portfolio is managed by myrepos (.mrconfig). Add repos with:")
+        for repo in sorted(new_repos, key=lambda r: r["nameWithOwner"]):
+            name = repo["nameWithOwner"].split("/")[-1]
+            print(f"  cd ~/Projects/{name} && mr -c ~/.mrconfig register   # if checked out")
+        print("\nOr hand-edit ~/.mrconfig (copy a stanza, swap name/URL), then commit your dotfiles.")
+        return
+
+    yaml_path = source
 
     # Append to YAML using ruamel.yaml to preserve formatting
     try:

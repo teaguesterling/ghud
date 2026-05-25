@@ -85,12 +85,21 @@ ghud discover --dry-run
 
 ## Configuration
 
-ghud reads a `projects.yaml` file that lists your portfolio repos. It checks these locations:
+ghud determines your portfolio repos from one of two sources, in order:
 
-1. `$XDG_CONFIG_HOME/ghud/projects.yaml` (default: `~/.config/ghud/projects.yaml`)
-2. `~/Projects/pages/src/_data/projects.yaml`
+1. **`~/.mrconfig`** — if you use [myrepos](https://myrepos.branchable.com/) (`mr`)
+   to manage your repos, ghud reads its manifest directly and derives each
+   `owner/repo` from the stanza's `checkout` clone URL. No separate config to
+   maintain (honors `$MR_CONFIG`).
+2. **`projects.yaml`** — fallback when no `.mrconfig` is found. Checked at:
+   - `$XDG_CONFIG_HOME/ghud/projects.yaml` (default: `~/.config/ghud/projects.yaml`)
+   - `~/Projects/pages/src/_data/projects.yaml`
 
-The YAML uses a nested category/subcategory/project structure. Repos in the `ignored` category are excluded from the dashboard.
+   The YAML uses a nested category/subcategory/project structure. Repos in the
+   `ignored` category are excluded from the dashboard.
+
+When the source is `.mrconfig`, `ghud discover` reports untracked repos but
+prints `mr register` hints instead of writing (myrepos owns that file).
 
 ## Features
 

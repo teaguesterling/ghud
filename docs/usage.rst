@@ -113,8 +113,10 @@ Discover
    ghud discover
 
 The discover command queries your GitHub account for all repos and compares
-against your ``projects.yaml``. New repos are added to an ``uncategorized``
-section for you to organize later.
+against your portfolio. With a ``projects.yaml`` portfolio, new repos are added
+to an ``uncategorized`` section for you to organize later. When your portfolio
+comes from ``~/.mrconfig``, discover instead prints ``mr register`` hints
+(myrepos owns that file) rather than writing.
 
 MCP Server
 ----------
@@ -152,11 +154,16 @@ For quick access:
 Configuration
 -------------
 
-ghud reads a ``projects.yaml`` file that lists your portfolio repos.
-It checks these locations in order:
+ghud determines your portfolio repos from one of two sources, in order:
 
-1. ``$XDG_CONFIG_HOME/ghud/projects.yaml`` (default: ``~/.config/ghud/projects.yaml``)
-2. ``~/Projects/pages/src/_data/projects.yaml``
+1. ``~/.mrconfig`` — if you manage your repos with `myrepos
+   <https://myrepos.branchable.com/>`_ (``mr``), ghud reads its manifest
+   directly, deriving each ``owner/repo`` from the stanza's ``checkout`` clone
+   URL. No separate config to maintain (honors ``$MR_CONFIG``).
+2. ``projects.yaml`` — fallback when no ``.mrconfig`` is found. Checked at:
 
-The YAML uses a nested ``categories -> subcategories -> projects`` structure.
-Repos in the ``ignored`` category are excluded from the dashboard.
+   - ``$XDG_CONFIG_HOME/ghud/projects.yaml`` (default: ``~/.config/ghud/projects.yaml``)
+   - ``~/Projects/pages/src/_data/projects.yaml``
+
+   The YAML uses a nested ``categories -> subcategories -> projects`` structure.
+   Repos in the ``ignored`` category are excluded from the dashboard.

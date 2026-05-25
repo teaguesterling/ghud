@@ -53,17 +53,16 @@ class IssueState(str, Enum):
 
 def run_dashboard(show_all: bool = False, days: int = 7) -> None:
     """Run the overview dashboard (existing behavior)."""
-    from ghud.config import find_yaml_path, load_repos_from_yaml
+    from ghud.config import resolve_portfolio
     from ghud.github import get_username
     from ghud.data import fetch_dashboard_data
     from ghud.dashboard import render_dashboard
 
-    yaml_path = find_yaml_path()
-    if not yaml_path:
-        typer.echo("Error: Could not find projects.yaml", err=True)
+    repos, source = resolve_portfolio()
+    if not source:
+        typer.echo("Error: no portfolio found (~/.mrconfig or projects.yaml)", err=True)
         raise typer.Exit(1)
 
-    repos = load_repos_from_yaml(yaml_path)
     username = get_username()
 
     if not username:
@@ -104,13 +103,12 @@ def run_issue_list(
         issues = get_issues_for_repo(repo)
         # TODO: support --state closed|all by adding state param to get_issues_for_repo
     else:
-        from ghud.config import find_yaml_path, load_repos_from_yaml
+        from ghud.config import resolve_portfolio
         from ghud.github import get_issues_for_repos_batch, get_username
-        yaml_path = find_yaml_path()
-        if not yaml_path:
-            typer.echo("Error: Could not find projects.yaml", err=True)
+        repos, source = resolve_portfolio()
+        if not source:
+            typer.echo("Error: no portfolio found (~/.mrconfig or projects.yaml)", err=True)
             raise typer.Exit(1)
-        repos = load_repos_from_yaml(yaml_path)
         username = get_username()
         issues = get_issues_for_repos_batch(repos, exclude_author=username)
         issues.sort(key=lambda x: x.get("createdAt", ""), reverse=True)

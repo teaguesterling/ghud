@@ -1,9 +1,11 @@
-"""Load projects.yaml and extract portfolio repo identifiers."""
+"""Resolve the portfolio repo list, from ~/.mrconfig or projects.yaml."""
 
 import os
 from typing import Optional
 
 from ruamel.yaml import YAML
+
+from ghud.mrconfig import find_mrconfig, load_portfolio_repos as _load_mrconfig_repos
 
 # Legacy candidate paths for projects.yaml
 _LEGACY_YAML_CANDIDATES = [
@@ -62,3 +64,23 @@ def load_repos_from_yaml(yaml_path: str) -> list[str]:
                     repos.append(repo)
 
     return repos
+
+
+def resolve_portfolio(prefer_mrconfig: bool = True) -> tuple[list[str], Optional[str]]:
+    """Return (repos, source_path) for the portfolio.
+
+    Prefers a myrepos ~/.mrconfig manifest when present (it's the
+    version-controlled source of truth that `mr` already maintains), and falls
+    back to projects.yaml. `repos` is a list of 'owner/repo' identifiers;
+    `source_path` is the file they came from, or None if neither was found.
+    """
+    if prefer_mrconfig:
+        mr_path = find_mrconfig()
+        if mr_path is not None:
+            return _load_mrconfig_repos(mr_path), str(mr_path)
+
+    yaml_path = find_yaml_path()
+    if yaml_path is not None:
+        return load_repos_from_yaml(yaml_path), yaml_path
+
+    return [], None
