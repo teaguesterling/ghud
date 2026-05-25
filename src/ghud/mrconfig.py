@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 # Match an owner/repo out of a github clone URL, SSH or HTTPS, with or without
@@ -34,11 +34,17 @@ class MrRepo:
     checkout: str | None = None  # raw `checkout =` command
     gh_repo: str | None = None  # "owner/repo" derived from the checkout URL
     skip: str | None = None  # value of `skip =` (e.g. "lazy")
+    options: dict[str, str] = field(default_factory=dict)  # all raw stanza keys
 
     @property
     def exists(self) -> bool:
         """Whether the repo is actually checked out on this machine."""
         return self.path.is_dir()
+
+    @property
+    def owner(self) -> str | None:
+        """The GitHub owner ('teaguesterling') from gh_repo, or None."""
+        return self.gh_repo.split("/", 1)[0] if self.gh_repo else None
 
 
 def gh_repo_from_checkout(checkout: str | None) -> str | None:
@@ -99,6 +105,7 @@ def parse_mrconfig(path: str | os.PathLike) -> list[MrRepo]:
                     checkout=checkout,
                     gh_repo=gh_repo_from_checkout(checkout),
                     skip=keys.get("skip"),
+                    options=dict(keys),
                 )
             )
         section = None

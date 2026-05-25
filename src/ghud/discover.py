@@ -48,7 +48,9 @@ def format_new_project(repo: dict) -> dict:
 
 def run_discover(args: argparse.Namespace) -> None:
     """Run the discover command."""
-    known_repos, source = resolve_portfolio()
+    # Compare against the full manifest, not the focused subset, so repos you've
+    # muted (ghud = ignore) aren't reported as untracked.
+    known_repos, source = resolve_portfolio(focused=False)
     if not source:
         print("Error: no portfolio found (~/.mrconfig or projects.yaml)", file=sys.stderr)
         sys.exit(1)

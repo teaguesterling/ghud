@@ -28,8 +28,8 @@ def _get_state() -> dict:
     """Resolve config and username once, cache for subsequent calls."""
     global _state
     if _state is None:
-        repos, _source = resolve_portfolio()
         username = get_username()
+        repos, _source = resolve_portfolio(username=username)
         _state = {"repos": repos, "username": username}
     return _state
 

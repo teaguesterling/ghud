@@ -167,3 +167,18 @@ ghud determines your portfolio repos from one of two sources, in order:
 
    The YAML uses a nested ``categories -> subcategories -> projects`` structure.
    Repos in the ``ignored`` category are excluded from the dashboard.
+
+Focused repos vs. the full manifest
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A ``.mrconfig`` often lists more than your own work — clones of upstream
+projects, forks you track locally. By default ghud shows a **focused** set so
+those don't flood your dashboard:
+
+- Repos **you own** (``owner/`` matches your ``gh`` login) are shown by default.
+- Add ``ghud = track`` to a stanza to pull a non-owned repo into the focused set.
+- Add ``ghud = ignore`` to mute one of your own repos.
+
+``mr`` ignores the unknown ``ghud`` key. Pass ``--all-repos`` (on ``ghud``,
+``ghud overview``, and ``ghud issue``) to use the entire manifest instead. The
+``projects.yaml`` equivalent of focus is its ``ignored`` category.

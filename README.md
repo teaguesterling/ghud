@@ -101,6 +101,32 @@ ghud determines your portfolio repos from one of two sources, in order:
 When the source is `.mrconfig`, `ghud discover` reports untracked repos but
 prints `mr register` hints instead of writing (myrepos owns that file).
 
+### Focused repos vs. the full manifest
+
+A `.mrconfig` typically lists more than your own work — clones of upstream
+projects, forks you track locally, etc. By default ghud shows a **focused** set
+so those don't flood your dashboard:
+
+- Repos **you own** (the `owner/` matches your `gh` login) are shown by default.
+- To pull a non-owned repo into the focused set, add `ghud = track` to its stanza.
+- To mute one of your own repos, add `ghud = ignore`.
+
+```ini
+[Projects/cockpit-file-sharing]      # external — opt in
+checkout = git clone https://github.com/45Drives/cockpit-file-sharing.git cockpit-file-sharing
+skip = lazy
+ghud = track
+
+[Projects/old-thing]                 # owned but noisy — opt out
+checkout = git clone git@github.com:you/old-thing.git old-thing
+skip = lazy
+ghud = ignore
+```
+
+`mr` ignores the unknown `ghud` key. Use `ghud --all-repos` (also on
+`ghud overview` and `ghud issue`) to override and use the entire manifest.
+The `projects.yaml` equivalent of focus is its `ignored` category.
+
 ## Features
 
 ### Multi-View CLI

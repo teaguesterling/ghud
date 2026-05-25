@@ -51,22 +51,21 @@ class IssueState(str, Enum):
     all = "all"
 
 
-def run_dashboard(show_all: bool = False, days: int = 7) -> None:
+def run_dashboard(show_all: bool = False, days: int = 7, all_repos: bool = False) -> None:
     """Run the overview dashboard (existing behavior)."""
     from ghud.config import resolve_portfolio
     from ghud.github import get_username
     from ghud.data import fetch_dashboard_data
     from ghud.dashboard import render_dashboard
 
-    repos, source = resolve_portfolio()
-    if not source:
-        typer.echo("Error: no portfolio found (~/.mrconfig or projects.yaml)", err=True)
-        raise typer.Exit(1)
-
     username = get_username()
-
     if not username:
         typer.echo("Error: Could not determine GitHub username. Run 'gh auth login'.", err=True)
+        raise typer.Exit(1)
+
+    repos, source = resolve_portfolio(focused=not all_repos, username=username)
+    if not source:
+        typer.echo("Error: no portfolio found (~/.mrconfig or projects.yaml)", err=True)
         raise typer.Exit(1)
 
     data = fetch_dashboard_data(repos, username, days=days)
@@ -93,6 +92,7 @@ def run_issue_list(
     state: str = "open",
     limit: int = 30,
     no_pager: bool = False,
+    all_repos: bool = False,
 ) -> None:
     """Fetch and render the issue list."""
     from ghud.render_issue import render_issue_list
@@ -105,11 +105,11 @@ def run_issue_list(
     else:
         from ghud.config import resolve_portfolio
         from ghud.github import get_issues_for_repos_batch, get_username
-        repos, source = resolve_portfolio()
+        username = get_username()
+        repos, source = resolve_portfolio(focused=not all_repos, username=username)
         if not source:
             typer.echo("Error: no portfolio found (~/.mrconfig or projects.yaml)", err=True)
             raise typer.Exit(1)
-        username = get_username()
         issues = get_issues_for_repos_batch(repos, exclude_author=username)
         issues.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
 
@@ -234,19 +234,25 @@ def default(
     ctx: typer.Context,
     show_all: bool = typer.Option(False, "--all", help="Include all notifications"),
     days: int = typer.Option(7, "--days", help="Lookback days for merged PRs"),
+    all_repos: bool = typer.Option(
+        False, "--all-repos", help="Use the full manifest, not just your focused repos"
+    ),
 ):
     """GitHub Heads-Up Display."""
     if ctx.invoked_subcommand is None:
-        run_dashboard(show_all=show_all, days=days)
+        run_dashboard(show_all=show_all, days=days, all_repos=all_repos)
 
 
 @app.command()
 def overview(
     show_all: bool = typer.Option(False, "--all", help="Include all notifications"),
     days: int = typer.Option(7, "--days", help="Lookback days for merged PRs"),
+    all_repos: bool = typer.Option(
+        False, "--all-repos", help="Use the full manifest, not just your focused repos"
+    ),
 ):
     """Global dashboard — notifications, PRs, issues across portfolio repos."""
-    run_dashboard(show_all=show_all, days=days)
+    run_dashboard(show_all=show_all, days=days, all_repos=all_repos)
 
 
 @app.command()
@@ -272,6 +278,9 @@ def issue(
     state: IssueState = typer.Option(IssueState.open, "--state", help="Filter by state (list mode)"),
     limit: int = typer.Option(30, "--limit", help="Max items in list mode"),
     no_pager: bool = typer.Option(False, "--no-pager", help="Disable pager"),
+    all_repos: bool = typer.Option(
+        False, "--all-repos", help="List mode: use the full manifest, not just your focused repos"
+    ),
 ):
     """View issues. Without a number, lists issues. With a number, shows detail."""
     resolved_repo = resolve_repo(repo)
@@ -286,7 +295,7 @@ def issue(
     else:
         run_issue_list(
             repo=resolved_repo, state=state.value,
-            limit=limit, no_pager=no_pager,
+            limit=limit, no_pager=no_pager, all_repos=all_repos,
         )
 
 
