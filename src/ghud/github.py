@@ -85,7 +85,7 @@ def get_issues_for_repo(repo: str, exclude_author: str = "") -> list[dict]:
     if exclude_author and isinstance(data, list):
         data = [
             issue for issue in data
-            if issue.get("author", {}).get("login") != exclude_author
+            if (issue.get("author") or {}).get("login") != exclude_author
         ]
     return data
 
@@ -152,7 +152,8 @@ def _graphql_issues_batch(
             continue
         for node in repo_data.get("issues", {}).get("nodes", []):
             # Normalize to match REST API format
-            author_login = node.get("author", {}).get("login", "")
+            # author is null for issues opened by since-deleted accounts
+            author_login = (node.get("author") or {}).get("login", "")
             if exclude_author and author_login == exclude_author:
                 continue
             labels = [

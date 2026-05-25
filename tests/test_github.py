@@ -105,6 +105,23 @@ def test_get_issues_for_repos_batch(monkeypatch):
     assert result[0]["repo"] in ("org/repo-a", "org/repo-b")
 
 
+def test_get_issues_for_repos_batch_null_author(monkeypatch):
+    # Issues from since-deleted accounts have author: null — must not crash.
+    graphql_response = {
+        "data": {
+            "r0": {"issues": {"nodes": [
+                {"number": 1, "title": "Ghost issue", "createdAt": "2026-03-20T00:00:00Z",
+                 "url": "https://...", "author": None,
+                 "labels": {"nodes": []}},
+            ]}},
+        }
+    }
+    monkeypatch.setattr(subprocess, "run", _mock_run(graphql_response))
+    result = get_issues_for_repos_batch(["org/repo-a"], exclude_author="me")
+    assert len(result) == 1
+    assert result[0]["title"] == "Ghost issue"
+
+
 def test_get_issue_detail(monkeypatch):
     data = {
         "number": 42,
