@@ -122,6 +122,32 @@ def test_get_issues_for_repos_batch_null_author(monkeypatch):
     assert result[0]["title"] == "Ghost issue"
 
 
+def test_get_issues_for_repos_batch_partial_failure(monkeypatch):
+    # One repo in the batch is invalid: GitHub returns partial data + errors
+    # and gh exits non-zero. The good repo's issues must still come through.
+    graphql_response = {
+        "data": {
+            "r0": {"issues": {"nodes": [
+                {"number": 1, "title": "Real bug", "createdAt": "2026-03-20T00:00:00Z",
+                 "url": "https://...", "author": {"login": "other"},
+                 "labels": {"nodes": []}},
+            ]}},
+            "r1": None,
+        },
+        "errors": [{"message": "Could not resolve to a Repository with the name 'org/gone'."}],
+    }
+    monkeypatch.setattr(subprocess, "run", _mock_run(graphql_response, returncode=1))
+    result = get_issues_for_repos_batch(["org/repo-a", "org/gone"], exclude_author="me")
+    assert len(result) == 1
+    assert result[0]["title"] == "Real bug"
+
+
+def test_get_issues_for_repos_batch_empty_stdout(monkeypatch):
+    # A true failure (no stdout) returns an empty list, not a crash.
+    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    assert get_issues_for_repos_batch(["org/repo-a"], exclude_author="me") == []
+
+
 def test_get_issue_detail(monkeypatch):
     data = {
         "number": 42,

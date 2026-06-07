@@ -138,7 +138,12 @@ def _graphql_issues_batch(
 
     query = "query {\n" + "\n".join(fragments) + "\n}"
     result = _run_gh(["api", "graphql", "-f", f"query={query}"])
-    if result.returncode != 0:
+    # When only some repos in the batch fail (renamed/deleted/private/typo),
+    # GitHub GraphQL still returns HTTP 200 with partial `data` plus an
+    # `errors` array, and gh exits non-zero. Parse stdout regardless rather
+    # than discarding the whole batch — the failed repos surface as null
+    # aliases, which the loop below already skips.
+    if not result.stdout.strip():
         return []
 
     try:

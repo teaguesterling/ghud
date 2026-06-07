@@ -10,6 +10,9 @@
   the panel with years-old issues.
 - Issues are now fetched newest-first (`orderBy: CREATED_AT DESC`), keeping the
   recency filter correct for repos with more than 100 open issues.
+- A single invalid repo (renamed/deleted/private) in a GraphQL batch no longer
+  drops the other ~24 repos in that batch. Partial results are now parsed even
+  when the query returns errors, instead of discarding the whole batch.
 
 ## 0.2.1
 
