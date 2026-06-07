@@ -233,7 +233,7 @@ def run_repo_dashboard(
 def default(
     ctx: typer.Context,
     show_all: bool = typer.Option(False, "--all", help="Include all notifications"),
-    days: int = typer.Option(7, "--days", help="Lookback days for merged PRs"),
+    days: int = typer.Option(7, "--days", help="Lookback days for merged PRs and new issues"),
     all_repos: bool = typer.Option(
         False, "--all-repos", help="Use the full manifest, not just your focused repos"
     ),
@@ -246,7 +246,7 @@ def default(
 @app.command()
 def overview(
     show_all: bool = typer.Option(False, "--all", help="Include all notifications"),
-    days: int = typer.Option(7, "--days", help="Lookback days for merged PRs"),
+    days: int = typer.Option(7, "--days", help="Lookback days for merged PRs and new issues"),
     all_repos: bool = typer.Option(
         False, "--all-repos", help="Use the full manifest, not just your focused repos"
     ),

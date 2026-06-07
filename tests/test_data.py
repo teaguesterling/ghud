@@ -1,5 +1,36 @@
 # tests/test_data.py
-from ghud.data import collect_other_activity, filter_important_notifications, IMPORTANT_REASONS
+from datetime import datetime, timedelta, timezone
+
+from ghud.data import (
+    collect_other_activity,
+    filter_important_notifications,
+    filter_recent_issues,
+    IMPORTANT_REASONS,
+)
+
+
+def _iso(days_ago: int) -> str:
+    dt = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def test_filter_recent_issues_drops_old_backlog():
+    issues = [
+        {"title": "fresh", "createdAt": _iso(2)},
+        {"title": "stale", "createdAt": _iso(400)},
+    ]
+    recent = filter_recent_issues(issues, days=7)
+    assert [i["title"] for i in recent] == ["fresh"]
+
+
+def test_filter_recent_issues_disabled_with_nonpositive_days():
+    issues = [{"title": "stale", "createdAt": _iso(400)}]
+    assert filter_recent_issues(issues, days=0) == issues
+
+
+def test_filter_recent_issues_keeps_unparseable_dates():
+    issues = [{"title": "weird", "createdAt": ""}]
+    assert filter_recent_issues(issues, days=7) == issues
 
 
 def test_collect_other_activity_splits_by_portfolio():

@@ -2,6 +2,7 @@
 """Shared data-fetching and filtering logic."""
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 
 from ghud.github import (
     get_notifications,
@@ -40,6 +41,31 @@ def collect_other_activity(
     return portfolio, other_summary
 
 
+def filter_recent_issues(issues: list[dict], days: int) -> list[dict]:
+    """Keep only issues created within the last `days` days.
+
+    The dashboard's "New Issues From Others" panel should reflect recent
+    activity, not a repo's entire open-issue backlog. A non-positive `days`
+    disables filtering (returns all issues). Issues with an unparseable
+    createdAt are kept, since GraphQL always supplies a valid ISO timestamp
+    and dropping them would silently hide activity.
+    """
+    if days <= 0:
+        return issues
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    recent = []
+    for issue in issues:
+        created = issue.get("createdAt", "")
+        try:
+            dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+        except (ValueError, AttributeError):
+            recent.append(issue)
+            continue
+        if dt >= cutoff:
+            recent.append(issue)
+    return recent
+
+
 def filter_important_notifications(
     notifications: list[dict], important_only: bool = True
 ) -> list[dict]:
@@ -63,6 +89,7 @@ def fetch_dashboard_data(
         open_prs = prs_future.result()
         merged_prs = merged_future.result()
         other_issues = issues_future.result()
+        other_issues = filter_recent_issues(other_issues, days)
         other_issues.sort(key=lambda x: x.get("createdAt", ""), reverse=True)
 
     portfolio_notifications, other_activity = collect_other_activity(

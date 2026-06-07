@@ -125,7 +125,8 @@ def _graphql_issues_batch(
         alias_map[alias] = repo
         fragments.append(
             f'{alias}: repository(owner: "{owner}", name: "{name}") {{\n'
-            f'  issues(first: 100, states: OPEN) {{\n'
+            f'  issues(first: 100, states: OPEN, '
+            f'orderBy: {{field: CREATED_AT, direction: DESC}}) {{\n'
             f'    nodes {{ number title createdAt url author {{ login }} '
             f'labels(first: 10) {{ nodes {{ name }} }} }}\n'
             f'  }}\n'

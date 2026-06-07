@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4
+
+### Fixed
+
+- "New Issues From Others" now honors the `--days` window instead of showing a
+  repo's entire open-issue backlog. Previously every open issue was listed
+  regardless of age, so high-volume repos (e.g. cockpit-file-sharing) dominated
+  the panel with years-old issues.
+- Issues are now fetched newest-first (`orderBy: CREATED_AT DESC`), keeping the
+  recency filter correct for repos with more than 100 open issues.
+
 ## 0.2.1
 
 ### Fixed
