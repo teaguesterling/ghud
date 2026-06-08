@@ -1,0 +1,4 @@
+[commands.test]
+cmd = "python -m pytest tests/ -q"
+description = "ghud pytest suite"
+format = "pytest_text"

@@ -9,3 +9,9 @@ docs/_build/
 .venv/
 .superpowers/
 .jetsam/
+
+# blq
+.bird/*
+!.bird/hooks/
+!.bird/config.toml
+!.bird/commands.toml
