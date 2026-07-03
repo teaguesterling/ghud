@@ -2,24 +2,27 @@
 
 import argparse
 import json
-import subprocess
 import sys
 
 from ghud.config import resolve_portfolio
-from ghud.github import get_username
+from ghud.github import _gh_failure, _run_gh, get_username
 from ghud.mrconfig import find_mrconfig
 
 
 def fetch_all_user_repos(username: str) -> list[dict]:
-    """Fetch all repos the user owns or collaborates on."""
+    """Fetch all repos the user owns or collaborates on.
+
+    Raises GhApiError on failure — a failed fetch must not be reported as
+    "all repos are already tracked".
+    """
     repos = []
     # Owned repos
-    result = subprocess.run(
-        ["gh", "api", "--paginate", f"users/{username}/repos",
-         "--jq", "[.[] | {nameWithOwner: .full_name, name: .name, description: .description, fork: .fork}]"],
-        capture_output=True, text=True,
-    )
-    if result.returncode == 0 and result.stdout.strip():
+    args = ["api", "--paginate", f"users/{username}/repos",
+            "--jq", "[.[] | {nameWithOwner: .full_name, name: .name, description: .description, fork: .fork}]"]
+    result = _run_gh(args)
+    if result.returncode != 0:
+        raise _gh_failure(args, result)
+    if result.stdout.strip():
         for line in result.stdout.strip().split("\n"):
             try:
                 repos.extend(json.loads(line))

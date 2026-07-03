@@ -5,11 +5,11 @@ import pytest
 from unittest.mock import patch
 
 
-def _mock_run(stdout_data, returncode=0):
+def _mock_run(stdout_data, returncode=0, stderr=""):
     def mock(cmd, **kwargs):
         result = subprocess.CompletedProcess(cmd, returncode)
         result.stdout = stdout_data if isinstance(stdout_data, str) else json.dumps(stdout_data)
-        result.stderr = ""
+        result.stderr = stderr
         return result
     return mock
 
@@ -48,8 +48,34 @@ def test_get_open_prs_tool(mock_config, monkeypatch):
 
 
 def test_get_dashboard_returns_markdown(mock_config, monkeypatch):
-    # Mock all GitHub calls to return empty
-    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    # Mock all GitHub calls to succeed with empty results
+    def mock(cmd, **kwargs):
+        result = subprocess.CompletedProcess(cmd, 0)
+        result.stderr = ""
+        args = list(cmd)
+        if args[1:3] == ["api", "graphql"]:
+            result.stdout = json.dumps({"data": {"r0": {"issues": {"nodes": []}}}})
+        elif "notifications" in args:
+            result.stdout = ""
+        else:
+            result.stdout = "[]"
+        return result
+
+    monkeypatch.setattr(subprocess, "run", mock)
     from ghud.mcp import get_dashboard
     result = get_dashboard(show_all=False, days=7)
     assert isinstance(result, str)
+    assert "No activity" in result
+
+
+def test_get_dashboard_surfaces_api_failure(mock_config, monkeypatch):
+    # A failed gh run (rate limit) must raise, not render "No activity".
+    from ghud.github import GhApiError
+    from ghud.mcp import get_dashboard
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        _mock_run("", returncode=1, stderr="HTTP 403: API rate limit exceeded"),
+    )
+    with pytest.raises(GhApiError):
+        get_dashboard(show_all=False, days=7)

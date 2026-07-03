@@ -338,4 +338,12 @@ def repo(
 
 def main():
     """Entry point for the ghud CLI."""
-    app()
+    from ghud.github import GhApiError
+
+    try:
+        app()
+    except GhApiError as exc:
+        # Surface API failures (auth, rate limit, network) as an explicit
+        # error — never as an empty "no activity" dashboard.
+        typer.echo(f"Error: {exc}", err=True)
+        sys.exit(1)
