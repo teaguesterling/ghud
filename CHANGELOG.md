@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- gh API failures now surface as errors instead of rendering "No activity to
+  show." A rate-limited (403), unauthenticated (401), or network-failed run
+  raises a classified `GhApiError` (kinds: `rate_limit`, `auth`, `network`,
+  `forbidden`, `not_found`, `missing-gh`, `error`); the CLI reports it and
+  exits 1. An empty list from `ghud.github` now always means a genuinely
+  empty successful query. (#2)
+- "Recently Merged" now filters on the *merge* date (`--merged-at`) instead
+  of the last-update date, re-checks `closedAt` client-side, and sorts
+  newest-merge-first — a PR merged long ago but commented on yesterday no
+  longer reappears in the panel. (#2)
+- `ghud discover` no longer reports "all repos are already tracked" when the
+  repo fetch itself failed. (#2)
+- GraphQL owner/name are passed as query variables instead of being
+  interpolated into the query text, so config-file values can't alter the
+  query structure. (#2)
+
 ## 0.2.4
 
 ### Fixed

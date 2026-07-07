@@ -1,7 +1,10 @@
 import json
 import subprocess
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from ghud.github import (
+    GhApiError,
     get_username,
     get_notifications,
     get_open_prs,
@@ -14,12 +17,12 @@ from ghud.github import (
 )
 
 
-def _mock_run(stdout_data, returncode=0):
+def _mock_run(stdout_data, returncode=0, stderr=""):
     """Create a mock for subprocess.run that returns given stdout."""
     def mock(cmd, **kwargs):
         result = subprocess.CompletedProcess(cmd, returncode)
         result.stdout = stdout_data if isinstance(stdout_data, str) else json.dumps(stdout_data)
-        result.stderr = ""
+        result.stderr = stderr
         return result
     return mock
 
@@ -50,9 +53,12 @@ def test_get_open_prs(monkeypatch):
 
 
 def test_get_merged_prs(monkeypatch):
+    closed = (datetime.now(timezone.utc) - timedelta(days=2)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
     data = [
         {"title": "Merged PR", "repository": {"nameWithOwner": "org/repo"},
-         "closedAt": "2026-03-22T00:00:00Z", "url": "https://..."},
+         "closedAt": closed, "url": "https://..."},
     ]
     monkeypatch.setattr(subprocess, "run", _mock_run(data))
     result = get_merged_prs("testuser", days=7)
@@ -143,9 +149,13 @@ def test_get_issues_for_repos_batch_partial_failure(monkeypatch):
 
 
 def test_get_issues_for_repos_batch_empty_stdout(monkeypatch):
-    # A true failure (no stdout) returns an empty list, not a crash.
-    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
-    assert get_issues_for_repos_batch(["org/repo-a"], exclude_author="me") == []
+    # A true failure (no stdout at all) must raise, not silently return [].
+    monkeypatch.setattr(
+        subprocess, "run",
+        _mock_run("", returncode=1, stderr="HTTP 403: API rate limit exceeded"),
+    )
+    with pytest.raises(GhApiError):
+        get_issues_for_repos_batch(["org/repo-a"], exclude_author="me")
 
 
 def test_get_issue_detail(monkeypatch):
@@ -177,9 +187,24 @@ def test_get_issue_detail(monkeypatch):
 
 
 def test_get_issue_detail_not_found(monkeypatch):
-    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    monkeypatch.setattr(
+        subprocess, "run",
+        _mock_run("", returncode=1,
+                  stderr="GraphQL: Could not resolve to an issue or pull "
+                         "request with the number of 999. (repository.issue)"),
+    )
     result = get_issue_detail("org/repo", 999)
     assert result == {}
+
+
+def test_get_issue_detail_api_failure_raises(monkeypatch):
+    # A rate-limited fetch must not be misreported as "issue not found".
+    monkeypatch.setattr(
+        subprocess, "run",
+        _mock_run("", returncode=1, stderr="HTTP 403: API rate limit exceeded"),
+    )
+    with pytest.raises(GhApiError):
+        get_issue_detail("org/repo", 42)
 
 
 def test_get_pr_detail(monkeypatch):
@@ -216,7 +241,12 @@ def test_get_pr_detail(monkeypatch):
 
 
 def test_get_pr_detail_not_found(monkeypatch):
-    monkeypatch.setattr(subprocess, "run", _mock_run("", returncode=1))
+    monkeypatch.setattr(
+        subprocess, "run",
+        _mock_run("", returncode=1,
+                  stderr="GraphQL: Could not resolve to a PullRequest with "
+                         "the number of 999. (repository.pullRequest)"),
+    )
     result = get_pr_detail("org/repo", 999)
     assert result == {}
 
